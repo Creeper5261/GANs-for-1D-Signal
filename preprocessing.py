@@ -29,6 +29,7 @@ class Dataset():
             dataset.append(sample)
         dataset = np.vstack(dataset).T
         dataset = torch.from_numpy(dataset).float()
+        dataset = dataset.cuda()
 
         return dataset
 

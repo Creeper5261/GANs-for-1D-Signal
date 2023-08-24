@@ -14,16 +14,15 @@ beta2 = 0.9
 p_coeff = 10
 n_critic = 5
 lr = 1e-4
-epoch_num = 64
+epoch_num = 1
 batch_size = 8
 nz = 100  # length of noise
 ngpu = 0
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+device = torch.device("cuda:0")
 
 def main():
     # load training data
-    trainset = Dataset('./data/brilliant_blue')
+    trainset = Dataset('./data')
 
     trainloader = torch.utils.data.DataLoader(
         trainset, batch_size=batch_size, shuffle=True
@@ -54,9 +53,12 @@ def main():
 
             noise = torch.randn(b_size, nz, 1, device=device)
             fake = netG(noise)
-
             # gradient penalty
             eps = torch.Tensor(b_size, 1, 1).uniform_(0, 1)
+
+            data = data.to(device)
+            fake = fake.to(device)
+            eps = eps.to(device)
             x_p = eps * data + (1 - eps) * fake
             grad = autograd.grad(netD(x_p).mean(), x_p, create_graph=True, retain_graph=True)[0].view(b_size, -1)
             grad_norm = torch.norm(grad, 2, 1)
@@ -86,6 +88,14 @@ def main():
                 print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
                       % (epoch, epoch_num, step, len(trainloader), loss_D.item(), loss_G.item()))
 
+        if epoch % 20 == 0:
+
+            with torch.no_grad():
+                fake = netG(fixed_noise).detach().cpu().numpy()
+                for i in range(fake.shape[0]):
+                    filename = f'./fake/fake_data_epoch_{epoch}_sample_{i}.csv'
+                    np.savetxt(filename, fake[i].flatten(), delimiter=',')
+
         # save training process
         with torch.no_grad():
             fake = netG(fixed_noise).detach().cpu()
@@ -95,8 +105,9 @@ def main():
                     a[i][j].plot(fake[i * 4 + j].view(-1))
                     a[i][j].set_xticks(())
                     a[i][j].set_yticks(())
-            plt.savefig('./img/wgan_gp_epoch_%d.png' % epoch)
+            plt.savefig('./img/wgan/wgan_gp_epoch_%d.png' % epoch)
             plt.close()
+
     # save model
     torch.save(netG, './nets/wgan_gp_netG.pkl')
     torch.save(netD, './nets/wgan_gp_netD.pkl')
