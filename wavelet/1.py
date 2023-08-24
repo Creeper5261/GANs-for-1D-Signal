@@ -14,7 +14,6 @@ for file in csv_files:
 
 
     result = df["Result"].tolist()
-git
     file_new = file[:-4] + "_new.csv"
     with open(os.path.join("new_folder", file_new), "w") as f:
         for r in result:
